@@ -6,18 +6,18 @@ import math
 '''
 Hyperparameters
 '''
-initial_point = np.matrix([2,3])
-final_point = np.matrix([8,9])
-max_generations = 100
-population = 20
-commands = 10
+initial_point = np.matrix([70,47])
+final_point = np.matrix([47,30])
+max_generations = 500
+population = 500
+commands = 50
 
 init_north = .25
 init_south = .25
 init_east = .25
 init_west = .25
 
-num_parents = 5
+num_parents = 20
 
 
 
@@ -51,18 +51,24 @@ def get_score():
 
 #returns parents from given population with lowest fitness scores (most fit)
 def get_parents():
-	return current_pop[np.argpartition(current_score, num_parents)[:num_parents]]
+	parents = []
+	for each in np.argpartition(current_score, num_parents)[:num_parents]:
+		parents.append(current_pop[each])
+	return parents
 	
 
 #returns new probabilities for next generation based on parents.
 def generate_new_prob(parents):
 	total = len(parents)*commands
-	north, south, east, west = 0
-	for each in range(parents):
-		east+=parents[each].count("east")
-		west+=parents[each].count("west")
-		north+=parents[each].count("north")
-		south+=parents[each].count("south")
+	north, south, east, west = 0,0,0,0
+	for each in range(len(parents)):
+		unique, counts = np.unique(parents[each], return_counts=True)
+		direction_counts = {"east":0, "west":0, "north":0, "south":0}
+		direction_counts.update(dict(zip(unique, counts)))
+		east+=direction_counts["east"]
+		west+=direction_counts["west"]
+		north+=direction_counts["north"]
+		south+=direction_counts["south"]
 	return north/total, south/total, east/total, west/total
 	
 
@@ -72,15 +78,17 @@ generate_pop(init_north, init_south, init_east, init_west)
 #print(current_pop)
 get_score()
 #print(current_score)
+
 north_p, south_p, east_p, west_p = generate_new_prob(get_parents())
 while generation < max_generations:
 	generate_pop(north_p, south_p, east_p, west_p)
 	get_score()
 	north_p, south_p, east_p, west_p = generate_new_prob(get_parents())
 	generation+=1
+	print(sum(current_score)/len(current_score))
 
 
-print(current_pop, current_score)
+print(current_pop, sorted(current_score))
 
 
 
