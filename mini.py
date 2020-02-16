@@ -8,8 +8,8 @@ Hyperparameters
 '''
 initial_point = np.matrix([70,47])
 final_point = np.matrix([47,30])
-max_generations = 500
-population = 500
+max_generations = 100
+population = 100
 commands = 50
 
 init_north = .25
@@ -25,7 +25,9 @@ directions = ["north", "south", "east", "west"]
 north, south, east, west = np.matrix([0,1]),np.matrix([0,-1]),np.matrix([1,0]),np.matrix([-1,0])
 current_pop = [None]*population
 current_score = [None]*population
-
+worst_fitness = []
+mean_fitness = []
+best_fitness = []
 
 #returns new position after instructions.
 def travel(instructions, initial): 
@@ -85,10 +87,25 @@ while generation < max_generations:
 	get_score()
 	north_p, south_p, east_p, west_p = generate_new_prob(get_parents())
 	generation+=1
-	print(sum(current_score)/len(current_score))
+	mean_fitness.append(sum(current_score)/len(current_score))
+	worst_fitness.append(max(current_score))
+	best_fitness.append(min(current_score))
 
 
-print(current_pop, sorted(current_score))
+plt.rc('text', usetex=True)
+plt.rc('font', family='serif')
+
+fig, sub = plt.subplots()
+sub.plot(range(1, max_generations+1), worst_fitness, 'r', label='Worst Fitness')
+sub.plot(range(1, max_generations+1), mean_fitness, 'g', label='Mean Fitness')
+sub.plot(range(1, max_generations+1), best_fitness, 'b', label='Best Fitness')
+legend = sub.legend(loc='upper right', shadow=True, fontsize='x-large')
+plt.title(r'\textbf{100 Generation Progression: 20 Parents}', fontsize=11)
+plt.xlabel(r'\textbf{Generations}', fontsize=11)
+plt.ylabel(r'\textbf{Fitness Score}', fontsize=11)
 
 
+plt.savefig("100-20.pdf", bbox_inches='tight')
+
+plt.show()
 
