@@ -1,0 +1,160 @@
+\documentclass{article}
+
+\usepackage{graphicx, pythonhighlight,float}
+\title{Evolutionary Computation Mini-Project: \protect\\ Will Koch}
+\begin{document}
+
+\maketitle
+\section{ICS 674}
+
+
+\subsection{Search Space}
+
+Two points are given, an initial point and a final point. Given a set number of simple commands
+ (up/down/right/left, or thinking in terms of cardinal directions north/south/east/west), which will get closest to final point from the initial point?
+
+The total search space is thus all possible lists of commands. Primarily, the focus was on 50 commands, giving total possibilities as:
+
+\[ \scalebox{2}{$4^{50} = 1.2676506 * 10^{30}$} \]
+
+
+\subsection{Objective Function}
+
+Fitness is determined by distance to the destination point after all commands have been run. Minimum distance is considered the most fit. 
+
+
+\begin{python}
+#returns new position after instructions.
+def travel(instructions): 
+	unique, counts = np.unique(instructions, return_counts=True)
+	direction_counts = {"east":0, "west":0, "north":0, "south":0}
+	direction_counts.update(dict(zip(unique, counts)))
+	return ((direction_counts["east"]*east)+(direction_counts["west"]*west)+(direction_counts["north"]*north)+(direction_counts["south"]*south)+initial_point)
+
+#distance from traveled point to objective.
+def fitness(instructions):
+	travel_point = travel(instructions)
+	return np.linalg.norm(final_point-travel_point)
+
+#returns fitness score values for each in the population.
+def get_score():
+	for each in range(population):
+		current_score[each] = fitness(current_pop[each])
+\end{python}
+
+\subsection{Variation Operator}
+
+Proportional combination is used, where weights are generated from the set of parents. 
+
+\begin{python}
+#returns new probabilities for next generation based on parents.
+def generate_new_prob(parents):
+	total = len(parents)*commands
+	north, south, east, west = 0,0,0,0
+	for each in range(len(parents)):
+		unique, counts = np.unique(parents[each], return_counts=True)
+		direction_counts = {"east":0, "west":0, "north":0, "south":0}
+		direction_counts.update(dict(zip(unique, counts)))
+		east+=direction_counts["east"]
+		west+=direction_counts["west"]
+		north+=direction_counts["north"]
+		south+=direction_counts["south"]
+	return north/total, south/total, east/total, west/total
+\end{python}
+
+\subsection{Selection Operator}
+
+Selection is done by truncation, with a number of parents selected to generate new direction probabilities from. 
+
+\begin{python}
+#returns list of fittest from current population.
+def get_parents():
+	parents = []
+	for each in np.argpartition(current_score, num_parents)[:num_parents]:
+		parents.append(current_pop[each])
+	return parents
+	
+
+#returns new probabilities for next generation based on parents.
+def generate_new_prob(parents):
+	total = len(parents)*commands
+	north, south, east, west = 0,0,0,0
+	for each in range(len(parents)):
+		unique, counts = np.unique(parents[each], return_counts=True)
+		direction_counts = {"east":0, "west":0, "north":0, "south":0}
+		direction_counts.update(dict(zip(unique, counts)))
+		east+=direction_counts["east"]
+		west+=direction_counts["west"]
+		north+=direction_counts["north"]
+		south+=direction_counts["south"]
+	return north/total, south/total, east/total, west/total
+\end{python}
+\newpage
+\subsection{Results}
+
+\begin{itemize}
+  \item Population - 100
+  \item Commands - 50
+  \item Generations - 100
+  \item Parents - 20\%/80\%
+\end{itemize}
+
+The code segment below shows the initial generation of the population (each direction has equal 1/4 chance of being chosen). It also shows the loop for each generation until the specified maximum number of generations has been reached. Lastly there is the code for generation of the graphs below. 
+
+
+\begin{python}
+#initial generation
+generation = 0 
+generate_pop(init_north, init_south, init_east, init_west)
+get_score()
+north_p, south_p, east_p, west_p = generate_new_prob(get_parents())
+
+while generation < max_generations:
+	generate_pop(north_p, south_p, east_p, west_p)
+	get_score()
+	north_p, south_p, east_p, west_p = generate_new_prob(get_parents())
+	generation+=1
+	mean_fitness.append(sum(current_score)/len(current_score))
+	worst_fitness.append(max(current_score))
+	best_fitness.append(min(current_score))
+
+
+plt.rc('text', usetex=True)
+plt.rc('font', family='serif')
+
+fig, sub = plt.subplots()
+sub.plot(range(1, max_generations+1), worst_fitness, 'r', label='Worst Fitness')
+sub.plot(range(1, max_generations+1), mean_fitness, 'g', label='Mean Fitness')
+sub.plot(range(1, max_generations+1), best_fitness, 'b', label='Best Fitness')
+legend = sub.legend(loc='upper right', shadow=True, fontsize='x-large')
+plt.title(r'\textbf{100 Generation Progression: 20 Parents}', fontsize=11)
+plt.xlabel(r'\textbf{Generations}', fontsize=11)
+plt.ylabel(r'\textbf{Fitness Score}', fontsize=11)
+
+
+plt.savefig("100-20.pdf", bbox_inches='tight')
+plt.show()
+\end{python}
+
+The graphs below show the success of the model. the first is when only the bottom 20\% are removed from the breeding pool, while the second is where only the top 20\% are kept. The main difference that can be seen is that this slows down how quickly it converges on the best results by a few generations. 
+\begin{figure}[H]
+\centering
+\includegraphics{figures/100-80.pdf}
+\caption{Evolution truncating 80\%}
+\label{fig:100-80}
+\end{figure}
+\begin{figure}[H]
+\centering
+\includegraphics{figures/100-20.pdf}
+\caption{Evolution truncating 20\%}
+\label{fig:100-20}
+\end{figure}
+
+\subsection{Interpretation of Results}
+
+As our only optimal result is to be at zero distance to the final point (or as close as possible given the number of commands and distance between the points), we can say that the evolutionary algorithm was able to achieve this. There are many ways to reach this result, but we were able to find some. 
+
+As can be seen in the graph above, there is a very clear improvement for the overall population and best/worst over the first 10 generations. After this point, improvement stalls out, not progressing further. Overall the algorithm converges very quickly to the optimal result it can achieve. 
+
+\end{document}
+
